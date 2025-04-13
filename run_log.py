@@ -68,14 +68,18 @@ def get_joint_action_eval(game, multi_part_agent_ids, policy_list, actions_space
         
         ##### +++++ modify
         print(f"function_name: {function_name}")
-        sys.exit()
-        ##### +++++ modify
+        
 
         for i in range(len(agents_id_list)):
             agent_id = agents_id_list[i]
             a_obs = all_observes[agent_id]
+            print(f"a_obs: {a_obs}")
+            print(f"action_space_list[i]: {action_space_list[i]}")
+            print(f"game.is_act_continuous: {game.is_act_continuous}")
+            sys.exit()
             each = eval(function_name)(a_obs, action_space_list[i], game.is_act_continuous)
             joint_action.append(each)
+        ##### +++++ modify
 
     return joint_action
 
