@@ -8,6 +8,7 @@ import sys
 
 sys.path.append("./olympics_engine")
 
+from pprint import pprint
 from env.chooseenv import make
 from utils.get_logger import get_logger
 from env.obs_interfaces.observation import obs_type
@@ -51,34 +52,62 @@ def get_players_and_action_space_list(g):
 
 
 def get_joint_action_eval(game, multi_part_agent_ids, policy_list, actions_spaces, all_observes):
+    """
+        Parameters:
+            1.  multi_part_agent_ids[i]: 策略 i 控制的 agent id 列表
+            2.  policy_list: 策略列表
+            3.  actions_spaces[i]: 策略 i 控制的 agent 的动作空间, actions_spaces[i][j]表示第 i 个策略控制的第 j 个 agent 的动作空间
+                    [
+                        [Box(-1.0, 1.0, (5,), float32)],
+                        ...,
+                    ]
+            4.  all_observes: 所有 agent 的观察值 == 每个 multi_part_agent_ids[i] 中包含的 agent 数量和
+                    [
+                        [{
+                            'obs': {
+                                'agent_id': 'government',
+                                'raw_obs': array([-1., -1., -1., -1., -1., -1.])
+                            },
+                            'controlled_player_index': 1 # 当前控制的 agent idx
+                        }],
+                        ...,
+                    ]
+    """
     if len(policy_list) != len(game.agent_nums):
         error = "模型个数%d与玩家个数%d维度不正确! " % (len(policy_list), len(game.agent_nums))
         raise Exception(error)
     # [[[0, 0, 0, 1]], [[0, 1, 0, 0]]]
     joint_action = []
     for policy_i in range(len(policy_list)):
-
         if game.obs_type[policy_i] not in obs_type:
             raise Exception("可选obs类型: %s" % str(obs_type))
 
-        agents_id_list = multi_part_agent_ids[policy_i]
-
-        action_space_list = actions_spaces[policy_i]
+        agents_id_list = multi_part_agent_ids[policy_i] # 策略 i 控制的 agent id 列表
+        action_space_list = actions_spaces[policy_i] # 策略 i 控制的 agent 的动作空间
         function_name = 'm%d' % policy_i
-        
+
         ##### +++++ modify
         print(f"function_name: {function_name}")
-        
 
         for i in range(len(agents_id_list)):
-            agent_id = agents_id_list[i]
-            a_obs = all_observes[agent_id]
-            print(f"a_obs: {a_obs}")
-            print(f"action_space_list[i]: {action_space_list[i]}")
+            agent_id = agents_id_list[i] # 策略 i 控制的第 i 个 agent id
+            a_obs = all_observes[agent_id] # 策略 i 控制的第 i 个 agent 的观察值
+
+            print(a_obs)
+            print(f"action_space_list[{i}]: {action_space_list[i]}")
             print(f"game.is_act_continuous: {game.is_act_continuous}")
-            sys.exit()
+
+            """
+                inputs Shape(6, ): 'raw_obs': array([-1., -1., -1., -1., -1., -1.])} 
+                Outputs Shape(5, ): [Box(-1.0, 1.0, (5,), float32)]
+            """
+
             each = eval(function_name)(a_obs, action_space_list[i], game.is_act_continuous)
             joint_action.append(each)
+
+
+        print(f"joint_action: {joint_action}")
+        sys.exit()
         ##### +++++ modify
 
     return joint_action
@@ -102,6 +131,7 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
     logger = get_logger(log_path, g.game_name, json_file=render_mode)
     set_seed(g, env_name)
 
+    ##### +++++ modify(customize policy)
     for i in range(len(policy_list)):
         if policy_list[i] not in get_valid_agents():
             raise Exception("agent {} not valid!".format(policy_list[i]))
@@ -116,6 +146,7 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
         import_s = "from %s import %s as %s" % (import_path, import_name, function_name)
         print(import_s)
         exec(import_s, globals())
+    ##### +++++ modify(customize policy)
 
     st = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
     game_info = {
@@ -187,13 +218,22 @@ if __name__ == "__main__":
     policy_list = _policy_list[:len(game.agent_nums)]
 
     multi_part_agent_ids, actions_space = get_players_and_action_space_list(game)
+    # policy_list = ['ppo', 'random']
+
+    # multi_part_agent_ids: 每个策略控制的智能体id列表。
+    # 例如: [range(0, 1)]表示策略 0 控制智能体 0
+    # multi_part_agent_ids = [
+    #     [0, 1],  # 策略 0 控制 agent 0 和 1
+    #     [2]      # 策略 1 控制 agent 2
+    # ]
+
+    # actions_spaces = [
+    #     [Box(...), Box(...)],   # 策略 0 控制的两个 agent 的动作空间
+    #     [Discrete(...)]         # 策略 1 控制的一个 agent 的动作空间
+    # ]
 
     print("policy_list:", policy_list)
     print("multi_part_agent_ids:", multi_part_agent_ids)
     print("actions_space:", actions_space)
-
-    # sys.exit()
-
-
 
     run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)

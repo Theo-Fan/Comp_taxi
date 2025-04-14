@@ -177,7 +177,7 @@ class Taxing_Gov_Heter(Game):
         household_obs = []
 
         for idx, aid in enumerate(self.agent_id):
-            if aid == 'government':
+            if aid == 'government': # 政府观察使用标准化后的全局状态
                 _obs = {'obs': {"agent_id": aid, "raw_obs":  np.copy(global_obs)},
                            "controlled_player_index": idx}
 
@@ -191,6 +191,7 @@ class Taxing_Gov_Heter(Game):
                 raise NotImplementedError
 
         self.household_obs = household_obs
+        # print('all_observes = ', all_observes)
 
         return all_observes
 
