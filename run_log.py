@@ -103,6 +103,7 @@ def get_joint_action_eval(game, multi_part_agent_ids, policy_list, actions_space
             """
 
             each = eval(function_name)(a_obs, action_space_list[i], game.is_act_continuous)
+            print(f"each: {each}")
             joint_action.append(each)
 
 

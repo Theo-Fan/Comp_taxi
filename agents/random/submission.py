@@ -12,9 +12,25 @@ https://github.com/jidiai/ai_lib/blob/master/examples/demo
 
 
 def my_controller(observation, action_space, is_act_continuous=False):
+    """ 
+    Parameters:
+        observation: {
+            'obs': {'agent_id': 'government', 'raw_obs': array([-1., -1., -1., -1., -1., -1.])}, 
+            'controlled_player_index': 1
+        }
+        action_space: [Box(-1.0, 1.0, (5,), float32)]
+        len(action_space): 1
+    """
+
     agent_action = []
-    for i in range(len(action_space)):
-        action_ = sample_single_dim(action_space[i], is_act_continuous)
+    # range(len(action_space)):  因为每个agent可能存在多个动作, 因此需要遍历动作空间(可以合并)
+    # action_space = [
+    #     Box(low=-1, high=1, shape=(2,)),  # 第一个动作空间（2维）
+    #     Box(low=-1, high=1, shape=(3,)),  # 第二个动作空间（3维）
+    #     Discrete(4)                        # 第三个动作空间（离散）
+    # ])
+    for i in range(len(action_space)): 
+        action_ = sample_single_dim(action_space[i], is_act_continuous) # 由于使用的是 random policy, 因此没用到 observation
         agent_action.append(action_)
     return agent_action
 
