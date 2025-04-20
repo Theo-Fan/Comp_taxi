@@ -5,6 +5,7 @@ import json
 import numpy as np
 import argparse
 import sys
+import torch
 
 sys.path.append("./olympics_engine")
 
@@ -87,15 +88,15 @@ def get_joint_action_eval(game, multi_part_agent_ids, policy_list, actions_space
         function_name = 'm%d' % policy_i
 
         ##### +++++ modify
-        print(f"function_name: {function_name}")
+        # print(f"function_name: {function_name}")
 
         for i in range(len(agents_id_list)):
             agent_id = agents_id_list[i] # 策略 i 控制的第 i 个 agent id
             a_obs = all_observes[agent_id] # 策略 i 控制的第 i 个 agent 的观察值
 
-            print(a_obs)
-            print(f"action_space_list[{i}]: {action_space_list[i]}")
-            print(f"game.is_act_continuous: {game.is_act_continuous}")
+            # print(a_obs)
+            # print(f"action_space_list[{i}]: {action_space_list[i]}")
+            # print(f"game.is_act_continuous: {game.is_act_continuous}")
 
             """
                 inputs Shape(6, ): 'raw_obs': array([-1., -1., -1., -1., -1., -1.])} 
@@ -103,12 +104,12 @@ def get_joint_action_eval(game, multi_part_agent_ids, policy_list, actions_space
             """
 
             each = eval(function_name)(a_obs, action_space_list[i], game.is_act_continuous)
-            print(f"each: {each}")
+            # print(f"each: {each}")
             joint_action.append(each)
 
 
-        print(f"joint_action: {joint_action}")
-        sys.exit()
+        # print(f"joint_action: {joint_action}")
+        # sys.exit()
         ##### +++++ modify
 
     return joint_action
@@ -165,30 +166,46 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
     steps = []
     all_observes = g.all_observes
     done = False
-    while not g.is_terminal():
-        step = "step%d" % g.step_cnt
-        if g.step_cnt % 10 == 0:
-            print(step)
+    ##### modify ===?
+    max_episodes = 150  # 设置最大训练次数
+    
+    # 外层for循环控制训练回合数
+    for episode in range(1, max_episodes + 1):
+        # 重置环境
+        g.reset()
+        all_observes = g.all_observes
+        done = False
+        step_cnt = 1
+        
+        
+        # 内层while循环控制每个回合的步数
+        while not g.is_terminal():
+            # step = "step%d" % step_cnt
+            # if step_cnt % 100 == 0:
+            #     print(f"Episode {episode}/{max_episodes}, {step}")
 
-        if render_mode and hasattr(g, "env_core"):
-            if hasattr(g.env_core, "render"):
-                g.env_core.render()
-                # pass
-        elif render_mode and hasattr(g, 'render'):
-            g.render()
+            if render_mode and hasattr(g, "env_core"):
+                if hasattr(g.env_core, "render"):
+                    g.env_core.render()
+            elif render_mode and hasattr(g, 'render'):
+                g.render()
 
-        info_dict = {"time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}
-        joint_act = get_joint_action_eval(g, multi_part_agent_ids, policy_list, actions_spaces, all_observes)
-        all_observes, reward, done, info_before, info_after = g.step(joint_act)
+            info_dict = {"time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}
+            joint_act = get_joint_action_eval(g, multi_part_agent_ids, policy_list, actions_spaces, all_observes)
+            all_observes, reward, done, info_before, info_after = g.step(joint_act)
 
-        if env_name.split("-")[0] in ["magent"]:
-            info_dict["joint_action"] = g.decode(joint_act)
-        if info_before:
-            info_dict["info_before"] = info_before
-        info_dict["reward"] = reward
-        if info_after:
-            info_dict["info_after"] = info_after
-        steps.append(info_dict)
+            if env_name.split("-")[0] in ["magent"]:
+                info_dict["joint_action"] = g.decode(joint_act)
+            if info_before:
+                info_dict["info_before"] = info_before
+            info_dict["reward"] = reward
+            if info_after:
+                info_dict["info_after"] = info_after
+            steps.append(info_dict)
+            
+            step_cnt += 1
+        print(f"Episode {episode}/{max_episodes} finished")
+    ##### modify ===
 
     game_info["steps"] = steps
     game_info["winner"] = g.check_win()
@@ -198,7 +215,18 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
     game_info["end_time"] = ed
     logs = json.dumps(game_info, ensure_ascii=False, cls=NpEncoder)
     logger.info(logs)
-
+    
+    # 保存最终模型
+    ##### modify ===
+    # if 'ppo' in policy_list:
+    #     try:
+    #         from agents.ppo.submission import ppo_agent
+    #         if ppo_agent is not None:
+    #             ppo_agent.save_models("final")
+    #             print("Final models saved successfully!")
+    #     except Exception as e:
+    #         print(f"Error saving final models: {e}")
+    ##### modify ===
 
 def get_valid_agents():
     dir_path = os.path.join(os.path.dirname(__file__), 'agents')
@@ -209,7 +237,7 @@ if __name__ == "__main__":
     env_type = "taxing_gov_heter"
     # env_type = "taxing_households_heter"
     game = make(env_type, seed=None)
-    render_mode = True
+    render_mode = False
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--my_ai", default="random", help="random")

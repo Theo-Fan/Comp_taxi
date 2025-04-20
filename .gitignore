@@ -4,6 +4,7 @@
 *$py.class
 logs/
 
+.DS_Store
 # C extensions
 *.so
 
