@@ -5,6 +5,11 @@ import torch.nn.functional as F
 from torch.distributions import Normal, Categorical
 import os
 
+"""
+ modify:
+    - change to training mode [submission.py, run_log.py]
+    - chang relu to tanh [submission.py]
+"""
 
 # 定义Actor网络
 class Actor(nn.Module):
@@ -22,8 +27,8 @@ class Actor(nn.Module):
             self.mean = nn.Linear(hidden_width, action_dim)
 
     def forward(self, state):
-        a = F.relu(self.l1(state))
-        a = F.relu(self.l2(a))
+        a = F.tanh(self.l1(state))
+        a = F.tanh(self.l2(a))
         
         if self.is_continuous:
             mean = self.max_action * torch.tanh(self.mean(a))
@@ -44,8 +49,8 @@ class Critic(nn.Module):
         self.l3 = nn.Linear(hidden_width, 1)
 
     def forward(self, state):
-        v = F.relu(self.l1(state))
-        v = F.relu(self.l2(v))
+        v = F.tanh(self.l1(state))
+        v = F.tanh(self.l2(v))
         v = self.l3(v)
         return v
 
@@ -204,7 +209,7 @@ def my_controller(observation, action_space, is_act_continuous=False):
         
         # 如果回合结束或经验池满了，更新网络
         if done or len(ppo_agent.memory) >= ppo_agent.batch_size:
-            # ppo_agent.update()
+            ppo_agent.update()
             ppo_agent.episode_rewards.append(episode_reward)
 
     

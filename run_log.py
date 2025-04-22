@@ -167,7 +167,7 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
     all_observes = g.all_observes
     done = False
     ##### modify ===?
-    max_episodes = 150  # 设置最大训练次数
+    max_episodes = 200  # 设置最大训练次数
     
     # 外层for循环控制训练回合数
     for episode in range(1, max_episodes + 1):
@@ -218,14 +218,14 @@ def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, ren
     
     # 保存最终模型
     ##### modify ===
-    # if 'ppo' in policy_list:
-    #     try:
-    #         from agents.ppo.submission import ppo_agent
-    #         if ppo_agent is not None:
-    #             ppo_agent.save_models("final")
-    #             print("Final models saved successfully!")
-    #     except Exception as e:
-    #         print(f"Error saving final models: {e}")
+    if 'ppo' in policy_list:
+        try:
+            from agents.ppo.submission import ppo_agent
+            if ppo_agent is not None:
+                ppo_agent.save_models("final")
+                print("Final models saved successfully!")
+        except Exception as e:
+            print(f"Error saving final models: {e}")
     ##### modify ===
 
 def get_valid_agents():
